@@ -14,4 +14,4 @@ max 3x<sub>1</sub> + 7x<sub>2</sub> + 16x<sub>3</sub>
 
 2x<sub>1</sub> + 3x<sub>2</sub> + 6x<sub>3</sub> ≤ 10
 
-x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub> ≥ 0 - целые
+x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub> ≥ 0 - integer

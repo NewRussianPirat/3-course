@@ -1,0 +1,16 @@
+var x1 integer;
+var x2 integer;
+var x3 integer;
+var x4 integer;
+var x5 integer;
+var x6 integer;
+maximize result: 7*x1 - 2*x2 + 6*x3 + 5*x5 + 2 * x6;
+subject to limit_1: x1 - 5*x2 + 3*x3 + x4 <= -8;
+subject to limit_2: 4*x1 - x2 + x3 + x5 <= 22;
+subject to limit_3: 2*x1 + 4*x2 + 2*x3 + x6 <= 30;
+subject to X1: 0 <= x1;
+subject to X2: 0 <= x2;
+subject to X3: 0 <= x3;
+subject to X4: 0 <= x4;
+subject to X5: 0 <= x5;
+subject to X6: 0 <= x6;

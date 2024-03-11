@@ -83,6 +83,8 @@ void Task3() {
 
 int main() {
     //TODO: Судя по всему, это надо будет преобразовать в отдельную функцию
+    std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9} ;
+
     vertices[0] = {0, 0};
     vertices[1] = {vertices[0].first + edges[1].second, 0};
     vertices[2] = {vertices[0].first + edges[2].second, 0};

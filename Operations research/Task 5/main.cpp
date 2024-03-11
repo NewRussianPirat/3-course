@@ -3,24 +3,25 @@
 #include <queue>
 #include <vector>
 #include <utility>
+#include <iomanip>
 
 const int NUMBER_OF_VERTICES = 8;
 const int NUMBER_OF_EDGES = 13;
 std::vector<std::pair<int, int>> vertices(NUMBER_OF_VERTICES);
 std::vector<std::pair<const std::pair<int, int>, int>> edges = {
         {{5, 6}, 0},
-        {{0, 1}, 15},
-        {{0, 2}, 7},
-        {{1, 3}, 5},
-        {{2, 3}, 6},
-        {{2, 4}, 8},
-        {{3, 4}, 6},
-        {{3, 6}, 10},
-        {{4, 5}, 8},
-        {{4, 6}, 9},
-        {{4, 7}, 11},
-        {{2, 7}, 10},
-        {{6, 7}, 9}
+        {{0, 1}, 0},
+        {{0, 2}, 0},
+        {{1, 3}, 0},
+        {{2, 3}, 0},
+        {{2, 4}, 0},
+        {{3, 4}, 0},
+        {{3, 6}, 0},
+        {{4, 5}, 0},
+        {{4, 6}, 0},
+        {{4, 7}, 0},
+        {{2, 7}, 0},
+        {{6, 7}, 0}
 };
 
 //TODO: Алгоритм ищет все некритичные пути, теперь надо алгоритм, который ищет один критичный путь
@@ -67,24 +68,13 @@ int findCriticalRoot(int start, int finish, const std::vector<bool> &criticalVer
     return result;
 }
 
-//TODO: Пригодится?
-void Task1() {
-
+void setWeights(const std::vector<int> &p) {
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        edges[i].second = p[i];
+    }
 }
 
-void Task2() {
-
-}
-
-void Task3() {
-
-}
-
-
-int main() {
-    //TODO: Судя по всему, это надо будет преобразовать в отдельную функцию
-    std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9} ;
-
+void fillGraph() {
     vertices[0] = {0, 0};
     vertices[1] = {vertices[0].first + edges[1].second, 0};
     vertices[2] = {vertices[0].first + edges[2].second, 0};
@@ -106,7 +96,13 @@ int main() {
                                   vertices[3].second - edges[4].second);
     vertices[1].second = vertices[3].second - edges[3].second;
     vertices[0].second = std::min(vertices[2].second - edges[2].second, vertices[1].second - edges[1].second);
-    //----------------------------------------------
+}
+
+void Task1() {
+    std::cout << "Task 1" << std::endl;
+    const std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9};
+    setWeights(t1);
+    fillGraph();
     std::vector<std::pair<int, int>> r(edges.size());
     for (int i = 0; i < edges.size(); ++i) {
         r[i].first = vertices[edges[i].first.second].second - vertices[edges[i].first.first].first - edges[i].second;
@@ -136,16 +132,77 @@ int main() {
     }
     std::vector<int> R;
     std::vector<double> N;
-    for (auto i : nonCriticalRoots) {
+    for (auto i: nonCriticalRoots) {
         int start = edges[*i.begin()].first.first;
         int finish = edges[*(--i.end())].first.second;
         int a = findCriticalRoot(start, finish, criticalVertices);
         int b = 0;
-        for (auto j : i) {
+        for (auto j: i) {
             b += edges[j].second;
         }
         R.push_back(a - b);
         N.push_back(double(b) / a);
     }
+    std::cout << " Event | Early Date | Late Date | Reserve Time \n------------------------------------------------\n";
+    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+        int n = 7;
+        if (criticalVertices[i]) {
+            std::cout << "*";
+            --n;
+        }
+        std::cout << std::setw(n) << i << "|"
+                  << std::setw(12) << vertices[i].first << "|"
+                  << std::setw(11) << vertices[i].second << "|"
+                  << std::setw(14) << vertices[i].second - vertices[i].first << "|"
+                  << "\n";
+    }
+    std::cout << "------------------------------------------------\n";
+    std::cout << "Critical vertices: ";
+    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+        if (criticalVertices[i]) {
+            std::cout << i << " ";
+        }
+    }
+    std::cout << "\n    Work     | Duration | Full Time Reserve | Independent Time Reserve"
+              << "\n------------------------------------------------------------------------\n";
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        int n = 2;
+        if (criticalEdges[i]) {
+            std::cout << "*";
+        } else {
+            std::cout << " ";
+        }
+        if (i >= 10) {
+            --n;
+        }
+        std::cout << "b" << i << " = (" << edges[i].first.first << ", " << edges[i].first.second << ")" << std::setw(n)
+                  << "|" << std::setw(10) << edges[i].second
+                  << "|" << std::setw(19) << r[i].first
+                  << "|" << std::setw(26) << r[i].second
+                  << "|\n";
+    }
+    std::cout << "------------------------------------------------------------------------\n";
+    std::cout << "Critical Edges: ";
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        if (criticalEdges[i]) {
+            std::cout << "b" << i << " ";
+        }
+    }
+}
+
+void Task2() {
+
+}
+
+void Task3() {
+
+}
+
+
+int main() {
+    //TODO: Судя по всему, это надо будет преобразовать в отдельную функцию
+    Task1();
+    //----------------------------------------------
+
     return 0;
 }

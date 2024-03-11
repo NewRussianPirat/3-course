@@ -24,7 +24,6 @@ std::vector<std::pair<const std::pair<int, int>, int>> edges = {
         {{6, 7}, 0}
 };
 
-//TODO: Алгоритм ищет все некритичные пути, теперь надо алгоритм, который ищет один критичный путь
 void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const std::vector<bool> &criticalEdges,
          std::vector<std::vector<int>> &nonCriticalRoots,
          std::vector<int> *root = nullptr) {
@@ -143,7 +142,9 @@ void Task1() {
         R.push_back(a - b);
         N.push_back(double(b) / a);
     }
-    std::cout << " Event | Early Date | Late Date | Reserve Time \n------------------------------------------------\n";
+    std::cout << "------------------------------------------------\n"
+              << " Event | Early Date | Late Date | Reserve Time |"
+              << "\n------------------------------------------------\n";
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
         int n = 7;
         if (criticalVertices[i]) {
@@ -163,7 +164,8 @@ void Task1() {
             std::cout << i << " ";
         }
     }
-    std::cout << "\n    Work     | Duration | Full Time Reserve | Independent Time Reserve"
+    std::cout << "\n------------------------------------------------------------------------\n"
+              << "    Work     | Duration | Full Time Reserve | Independent Time Reserve |"
               << "\n------------------------------------------------------------------------\n";
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
         int n = 2;
@@ -188,6 +190,18 @@ void Task1() {
             std::cout << "b" << i << " ";
         }
     }
+    std::cout << "\n---------------------------------------------------------\n"
+              << " Non-critical arcs | Time Reserve | Tension Coefficient |"
+              << "\n---------------------------------------------------------\n";
+    for (int i = 0; i < nonCriticalRoots.size(); ++i) {
+        int n = 16 - nonCriticalRoots[i].size() * 3;
+        std::cout << std::setw(n) << "(" << edges[nonCriticalRoots[i][0]].first.first;
+        for (int j: nonCriticalRoots[i]) {
+            std::cout << ", " << edges[j].first.second;
+        }
+        std::cout << ") | " << std::setw(13) << R[i] << "|" << std::setw(21) << N[i] << "|\n";
+    }
+    std::cout << "---------------------------------------------------------\n";
 }
 
 void Task2() {
@@ -200,9 +214,6 @@ void Task3() {
 
 
 int main() {
-    //TODO: Судя по всему, это надо будет преобразовать в отдельную функцию
     Task1();
-    //----------------------------------------------
-
     return 0;
 }

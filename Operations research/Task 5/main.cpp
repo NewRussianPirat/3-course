@@ -37,18 +37,49 @@ void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const
         return;
     }
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
-        if (!criticalEdges[i] && edges[i].first.first == begin &&
-            (!criticalVertices[edges[i].first.second] || edges[i].first.second == target)) {
+        int EDGE_BEGIN = edges[i].first.first;
+        int EDGE_END = edges[i].first.second;
+        if (!criticalEdges[i] && EDGE_BEGIN == begin && (!criticalVertices[EDGE_END] || EDGE_END == target)) {
             if (root == nullptr) {
                 root = new std::vector<int>({i});
             } else {
                 root->push_back(i);
             }
-            dfs(edges[i].first.second, target, criticalVertices, criticalEdges, nonCriticalRoots, root);
+            dfs(EDGE_END, target, criticalVertices, criticalEdges, nonCriticalRoots, root);
             root->pop_back();
         }
     }
 }
+
+int findCriticalRoot(int start, int finish, const std::vector<bool> &criticalVertices) {
+    if (start == finish) {
+        return 0;
+    }
+    int result = 0;
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        int EDGE_BEGIN = edges[i].first.first;
+        int EDGE_END = edges[i].first.second;
+        if (EDGE_BEGIN == start && criticalVertices[EDGE_END]) {
+            result += findCriticalRoot(EDGE_END, finish, criticalVertices) + edges[i].second;
+            break;
+        }
+    }
+    return result;
+}
+
+//TODO: Пригодится?
+void Task1() {
+
+}
+
+void Task2() {
+
+}
+
+void Task3() {
+
+}
+
 
 int main() {
     //TODO: Судя по всему, это надо будет преобразовать в отдельную функцию
@@ -73,6 +104,7 @@ int main() {
                                   vertices[3].second - edges[4].second);
     vertices[1].second = vertices[3].second - edges[3].second;
     vertices[0].second = std::min(vertices[2].second - edges[2].second, vertices[1].second - edges[1].second);
+    //----------------------------------------------
     std::vector<std::pair<int, int>> r(edges.size());
     for (int i = 0; i < edges.size(); ++i) {
         r[i].first = vertices[edges[i].first.second].second - vertices[edges[i].first.first].first - edges[i].second;
@@ -99,6 +131,19 @@ int main() {
                 }
             }
         }
+    }
+    std::vector<int> R;
+    std::vector<double> N;
+    for (auto i : nonCriticalRoots) {
+        int start = edges[*i.begin()].first.first;
+        int finish = edges[*(--i.end())].first.second;
+        int a = findCriticalRoot(start, finish, criticalVertices);
+        int b = 0;
+        for (auto j : i) {
+            b += edges[j].second;
+        }
+        R.push_back(a - b);
+        N.push_back(double(b) / a);
     }
     return 0;
 }

@@ -1,8 +1,9 @@
 #include <algorithm>
+#include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <utility>
-#include <iomanip>
 
 const int NUMBER_OF_VERTICES = 8;
 const int NUMBER_OF_EDGES = 13;
@@ -160,6 +161,20 @@ findTensionCoefficient(const std::vector<std::vector<int>> &nonCriticalRoots, co
     return N;
 }
 
+std::vector<int> findExpectedTime(const std::vector<int> &t_pessimistic, const std::vector<int> &t_optimistic,
+                                  const std::vector<int> *t_probable = nullptr) {
+    std::vector<int> t_expected(NUMBER_OF_EDGES);
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        if (t_probable != nullptr) {
+            t_expected[i] = (int) (std::round(
+                    (double) (t_pessimistic[i] + 4 * (*t_probable)[i] + t_optimistic[i]) / 6));
+        } else {
+            t_expected[i] = (3 * t_pessimistic[i] + 2 * t_optimistic[i]) / 5;
+        }
+    }
+    return t_expected;
+}
+
 void showEventTable(const std::vector<bool> &criticalVertices) {
     std::cout << "\n------------------------------------------------\n"
               << " Event | Early Date | Late Date | Time Reserve |"
@@ -257,7 +272,18 @@ void Task1() {
 }
 
 void Task2() {
-
+    std::cout << "\nTask 2" << std::endl;
+    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9};
+    //TODO: не нравится мне здесь 12 на предпоследнем месте, противоречит условию...
+    const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 12, 5};
+    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
+    const double reliability = 0.9;
+    const int deadline = 29;
+    std::vector<int> t_expected = findExpectedTime(t_pessimistic, t_optimistic, &t_probable);
+    setWeights(t_expected);
+    fillGraph();
+    std::vector<bool> criticalVertices = setCriticalVertices();
+    showEventTable(criticalVertices);
 }
 
 void Task3() {
@@ -266,6 +292,8 @@ void Task3() {
 
 
 int main() {
+    std::cout << std::setprecision(2);
     Task1();
+    Task2();
     return 0;
 }

@@ -24,6 +24,10 @@ std::vector<std::pair<const std::pair<int, int>, int>> edges = {
         {{6, 7}, 0}
 };
 
+double Laplace(double x) {
+    return 0.5 * std::erf(x / std::sqrt(2.0));
+}
+
 void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const std::vector<bool> &criticalEdges,
          std::vector<std::vector<int>> &nonCriticalRoots,
          std::vector<int> *root = nullptr) {
@@ -184,6 +188,16 @@ std::vector<double> findDispersion(const std::vector<int> &t_pessimistic, const 
     return dispersion;
 }
 
+double findCriticalDispersion(const std::vector<bool> &criticalEdges, const std::vector<double> &dispersion) {
+    double result = 0;
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        if (criticalEdges[i]) {
+            result += dispersion[i];
+        }
+    }
+    return std::sqrt(result);
+}
+
 void showEventTable(const std::vector<bool> &criticalVertices) {
     std::string delimiter = "------------------------------------------------";
     std::string s1 = " Event | Early Date | Late Date | Time Reserve |";
@@ -220,7 +234,7 @@ void showWorkTable(const std::vector<bool> &criticalEdges, const std::vector<std
     std::string s1 = "    Work     | Duration | Full Time Reserve | Independent Time Reserve |";
     if (dispersion != nullptr) {
         s1 += " Dispersion |";
-        delimiter += "----------------";
+        delimiter += "-------------";
     }
     std::cout << "\n" << delimiter << "\n" << s1 << "\n" << delimiter << "\n";
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
@@ -291,9 +305,9 @@ void Task1() {
 
 void Task2() {
     std::cout << "\nTask 2" << std::endl;
-    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9};
+    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
     //TODO: не нравится мне здесь 12 на предпоследнем месте, противоречит условию...
-    const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 12, 5};
+    const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 10, 5};
     const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
     const double reliability = 0.9;
     const int deadline = 29;
@@ -303,8 +317,43 @@ void Task2() {
     std::vector<double> dispersion = findDispersion(t_pessimistic, t_optimistic);
     std::vector<bool> criticalVertices = setCriticalVertices();
     showEventTable(criticalVertices);
+    showCriticalVertices(criticalVertices);
     std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
-    showWorkTable(criticalVertices, findTimeReserves(), &dispersion);
+    std::vector<bool> criticalEdges = setCriticalEdges(timeReserves);
+    showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
+    showCriticalEdges(criticalEdges);
+    double criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
+    std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
+    double probability = 0.5 + Laplace((deadline - (*(--vertices.end())).second) / criticalDispersion);
+    std::cout << "Probability of completion in time: " << probability << "%\n";
+    std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
+              << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
+    double a = 1.65;
+    std::cout << "Completion time with " << reliability * 100 << "% reliability: "
+              << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
+              << std::round((*(--vertices.end())).second + a * criticalDispersion);
+    //-----------------------------------------------------------------------------
+    t_expected = findExpectedTime(t_pessimistic, t_optimistic);
+    setWeights(t_expected);
+    fillGraph();
+    dispersion = findDispersion(t_pessimistic, t_optimistic);
+    criticalVertices = setCriticalVertices();
+    showEventTable(criticalVertices);
+    showCriticalVertices(criticalVertices);
+    timeReserves = findTimeReserves();
+    criticalEdges = setCriticalEdges(timeReserves);
+    showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
+    showCriticalEdges(criticalEdges);
+    criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
+    std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
+    probability = 0.5 + Laplace((deadline - (*(--vertices.end())).second) / criticalDispersion);
+    std::cout << "Probability of completion in time: " << probability << "%\n";
+    std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
+              << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
+    a = 1.65;
+    std::cout << "Completion time with " << reliability * 100 << "% reliability: "
+              << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
+              << std::round((*(--vertices.end())).second + a * criticalDispersion);
 }
 
 void Task3() {
@@ -313,7 +362,7 @@ void Task3() {
 
 
 int main() {
-    std::cout << std::setprecision(2);
+    std::cout << std::setprecision(5);
     Task1();
     Task2();
     return 0;

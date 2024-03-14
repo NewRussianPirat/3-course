@@ -7,7 +7,6 @@
 
 //const int NUMBER_OF_VERTICES = 8;
 //const int NUMBER_OF_EDGES = 13;
-//std::vector<std::pair<int, int>> vertices(NUMBER_OF_VERTICES);
 //std::vector<std::pair<const std::pair<int, int>, int>> edges = {
 //        {{5, 6}, 0},
 //        {{0, 1}, 0},
@@ -27,7 +26,6 @@
 //Определение графа
 const int NUMBER_OF_VERTICES = 7;
 const int NUMBER_OF_EDGES = 12;
-std::vector<std::pair<int, int>> vertices(NUMBER_OF_VERTICES);
 std::vector<std::pair<const std::pair<int, int>, int>> edges = {
         {{3, 5}, 0}, //b0
         {{0, 1}, 0}, //b1
@@ -47,7 +45,7 @@ double Laplace(double x) {
     return 0.5 * std::erf(x / std::sqrt(2.0));
 }
 
-void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const std::vector<bool> &criticalEdges,
+void dfs(int begin, int target, const std::vector<bool> &criticalEvents, const std::vector<bool> &criticalEdges,
          std::vector<std::vector<int>> &nonCriticalRoots,
          std::vector<int> *root = nullptr) {
     if (begin > target) {
@@ -62,13 +60,13 @@ void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
         int EDGE_BEGIN = edges[i].first.first;
         int EDGE_END = edges[i].first.second;
-        if (!criticalEdges[i] && EDGE_BEGIN == begin && (!criticalVertices[EDGE_END] || EDGE_END == target)) {
+        if (!criticalEdges[i] && EDGE_BEGIN == begin && (!criticalEvents[EDGE_END] || EDGE_END == target)) {
             if (root == nullptr) {
                 root = new std::vector<int>({i});
             } else {
                 root->push_back(i);
             }
-            dfs(EDGE_END, target, criticalVertices, criticalEdges, nonCriticalRoots, root);
+            dfs(EDGE_END, target, criticalEvents, criticalEdges, nonCriticalRoots, root);
             if (root != nullptr && !root->empty()) {
                 root->pop_back();
             }
@@ -76,7 +74,7 @@ void dfs(int begin, int target, const std::vector<bool> &criticalVertices, const
     }
 }
 
-int findCriticalRootWeight(int start, int finish, const std::vector<bool> &criticalVertices) {
+int findCriticalRootWeight(int start, int finish, const std::vector<bool> &criticalEvents) {
     if (start == finish) {
         return 0;
     }
@@ -84,8 +82,9 @@ int findCriticalRootWeight(int start, int finish, const std::vector<bool> &criti
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
         int EDGE_BEGIN = edges[i].first.first;
         int EDGE_END = edges[i].first.second;
-        if (EDGE_BEGIN == start && criticalVertices[EDGE_END]) {
-            result += findCriticalRootWeight(EDGE_END, finish, criticalVertices) + edges[i].second;
+        int EDGE_WEIGHT = edges[i].second;
+        if (EDGE_BEGIN == start && criticalEvents[EDGE_END]) {
+            result += findCriticalRootWeight(EDGE_END, finish, criticalEvents) + EDGE_WEIGHT;
             break;
         }
     }
@@ -98,66 +97,59 @@ void setWeights(const std::vector<int> &p) {
     }
 }
 
-void fillGraph() {
-    vertices[0] = {0, 0};
+std::vector<std::pair<int, int>> fillGraph() {
+    std::vector<std::pair<int, int>> eventOccurrenceTime(NUMBER_OF_VERTICES);
+    eventOccurrenceTime[0] = {0, 0};
     for (int i = 1; i < NUMBER_OF_VERTICES; ++i) {
-        vertices[i].first = INT_MIN;
+        eventOccurrenceTime[i].first = INT_MIN;
         for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
-            if (edges[j].first.second == i) {
-                vertices[i].first = std::max(vertices[i].first, vertices[edges[j].first.first].first + edges[j].second);
+            int EDGE_BEGIN = edges[j].first.first;
+            int EDGE_END = edges[j].first.second;
+            int EDGE_WEIGHT = edges[j].second;
+            if (EDGE_END == i) {
+                eventOccurrenceTime[i].first = std::max(eventOccurrenceTime[i].first,
+                                                        eventOccurrenceTime[EDGE_BEGIN].first + EDGE_WEIGHT);
             }
         }
     }
-    (*(--vertices.end())).second = (*(--vertices.end())).first;
+    eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second = eventOccurrenceTime[NUMBER_OF_VERTICES - 1].first;
     for (int i = NUMBER_OF_VERTICES - 2; i >= 0; --i) {
-        vertices[i].second = INT_MAX;
+        eventOccurrenceTime[i].second = INT_MAX;
         for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
-            if (edges[j].first.first == i) {
-                vertices[i].second = std::min(vertices[i].second,
-                                              vertices[edges[j].first.second].second - edges[j].second);
+            int EDGE_BEGIN = edges[j].first.first;
+            int EDGE_END = edges[j].first.second;
+            int EDGE_WEIGHT = edges[j].second;
+            if (EDGE_BEGIN == i) {
+                eventOccurrenceTime[i].second = std::min(eventOccurrenceTime[i].second,
+                                                         eventOccurrenceTime[EDGE_END].second - EDGE_WEIGHT);
             }
         }
     }
-//    vertices[0] = {0, 0};
-//    vertices[1] = {vertices[0].first + edges[1].second, 0};
-//    vertices[2] = {vertices[0].first + edges[2].second, 0};
-//    vertices[3] = {std::max(vertices[1].first + edges[3].second, vertices[2].first + edges[4].second), 0};
-//    vertices[4] = {std::max(vertices[2].first + edges[5].second, vertices[3].first + edges[6].second), 0};
-//    vertices[5] = {vertices[4].first + edges[8].second, 0};
-//    vertices[6] = {std::max(std::max(vertices[3].first + edges[7].second, vertices[4].first + edges[9].second),
-//                            vertices[5].first + edges[0].second), 0};
-//    vertices[7] = {std::max(std::max(vertices[2].first + edges[11].second, vertices[4].first + edges[10].second),
-//                            vertices[6].first + edges[12].second), 0};
-//    //---------------------------------------------
-//    vertices[7].second = vertices[7].first;
-//    vertices[6].second = vertices[7].second - edges[12].second;
-//    vertices[5].second = vertices[6].second - edges[0].second;
-//    vertices[4].second = std::min(std::min(vertices[7].second - edges[10].second, vertices[6].second - edges[9].second),
-//                                  vertices[5].second - edges[8].second);
-//    vertices[3].second = std::min(vertices[6].second - edges[7].second, vertices[4].second - edges[6].second);
-//    vertices[2].second = std::min(std::min(vertices[7].second - edges[11].second, vertices[4].second - edges[5].second),
-//                                  vertices[3].second - edges[4].second);
-//    vertices[1].second = vertices[3].second - edges[3].second;
-//    vertices[0].second = std::min(vertices[2].second - edges[2].second, vertices[1].second - edges[1].second);
+    return eventOccurrenceTime;
 }
 
-std::vector<std::pair<int, int>> findTimeReserves() {
-    std::vector<std::pair<int, int>> r(NUMBER_OF_EDGES);
+std::vector<std::pair<int, int>> findTimeReserves(const std::vector<std::pair<int, int>> &eventOccurrenceTime) {
+    std::vector<std::pair<int, int>> timeReserves(NUMBER_OF_EDGES);
     for (int i = 0; i < edges.size(); ++i) {
-        r[i].first = vertices[edges[i].first.second].second - vertices[edges[i].first.first].first - edges[i].second;
-        r[i].second = vertices[edges[i].first.second].first - vertices[edges[i].first.first].second - edges[i].second;
+        int EDGE_BEGIN = edges[i].first.first;
+        int EDGE_END = edges[i].first.second;
+        int EDGE_WEIGHT = edges[i].second;
+        timeReserves[i].first =
+                eventOccurrenceTime[EDGE_END].second - eventOccurrenceTime[EDGE_BEGIN].first - EDGE_WEIGHT;
+        timeReserves[i].second =
+                eventOccurrenceTime[EDGE_END].first - eventOccurrenceTime[EDGE_BEGIN].second - EDGE_WEIGHT;
     }
-    return r;
+    return timeReserves;
 }
 
-std::vector<bool> findCriticalVertices() {
-    std::vector<bool> criticalVertices(NUMBER_OF_VERTICES, false);
+std::vector<bool> findCriticalEvents(const std::vector<std::pair<int, int>> &eventOccurrenceTime) {
+    std::vector<bool> criticalEvents(NUMBER_OF_VERTICES, false);
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
-        if (vertices[i].first == vertices[i].second) {
-            criticalVertices[i] = true;
+        if (eventOccurrenceTime[i].first == eventOccurrenceTime[i].second) {
+            criticalEvents[i] = true;
         }
     }
-    return criticalVertices;
+    return criticalEvents;
 }
 
 std::vector<bool> findCriticalEdges(const std::vector<std::pair<int, int>> &timeReserves) {
@@ -171,13 +163,13 @@ std::vector<bool> findCriticalEdges(const std::vector<std::pair<int, int>> &time
 }
 
 std::vector<std::vector<int>>
-findNonCriticalRoots(const std::vector<bool> &criticalVertices, const std::vector<bool> &criticalEdges) {
+findNonCriticalRoots(const std::vector<bool> &criticalEvents, const std::vector<bool> &criticalEdges) {
     std::vector<std::vector<int>> nonCriticalRoots;
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
-        if (criticalVertices[i]) {
+        if (criticalEvents[i]) {
             for (int j = i + 1; j < NUMBER_OF_VERTICES; ++j) {
-                if (criticalVertices[j]) {
-                    dfs(i, j, criticalVertices, criticalEdges, nonCriticalRoots);
+                if (criticalEvents[j]) {
+                    dfs(i, j, criticalEvents, criticalEdges, nonCriticalRoots);
                 }
             }
         }
@@ -186,21 +178,21 @@ findNonCriticalRoots(const std::vector<bool> &criticalVertices, const std::vecto
 }
 
 std::vector<double>
-findTensionCoefficient(const std::vector<std::vector<int>> &nonCriticalRoots, const std::vector<bool> &criticalVertices,
-                       std::vector<int> *R) {
-    std::vector<double> N;
+findTensionCoefficients(const std::vector<std::vector<int>> &nonCriticalRoots, const std::vector<bool> &criticalEvents,
+                        std::vector<int> *nonCriticalReserves) {
+    std::vector<double> nonCriticalTensionCoefficients;
     for (auto i: nonCriticalRoots) {
         int start = edges[*i.begin()].first.first;
         int finish = edges[*(--i.end())].first.second;
-        int a = findCriticalRootWeight(start, finish, criticalVertices);
+        int a = findCriticalRootWeight(start, finish, criticalEvents);
         int b = 0;
         for (auto j: i) {
             b += edges[j].second;
         }
-        R->push_back(a - b);
-        N.push_back(double(b) / a);
+        nonCriticalReserves->push_back(a - b);
+        nonCriticalTensionCoefficients.push_back(double(b) / a);
     }
-    return N;
+    return nonCriticalTensionCoefficients;
 }
 
 std::vector<int> findExpectedTime(const std::vector<int> &t_pessimistic, const std::vector<int> &t_optimistic,
@@ -211,7 +203,7 @@ std::vector<int> findExpectedTime(const std::vector<int> &t_pessimistic, const s
             t_expected[i] = (int) (std::round(
                     (double) (t_pessimistic[i] + 4 * (*t_probable)[i] + t_optimistic[i]) / 6));
         } else {
-            t_expected[i] = (int) std::round((double)(3 * t_pessimistic[i] + 2 * t_optimistic[i]) / 5);
+            t_expected[i] = (int) std::round((double) (3 * t_pessimistic[i] + 2 * t_optimistic[i]) / 5);
         }
     }
     return t_expected;
@@ -236,30 +228,31 @@ double findCriticalDispersion(const std::vector<bool> &criticalEdges, const std:
     return std::sqrt(result);
 }
 
-void showEventTable(const std::vector<bool> &criticalVertices) {
+void
+showEventTable(const std::vector<std::pair<int, int>> &eventOccurrenceTime, const std::vector<bool> &criticalEvents) {
     std::string delimiter = "------------------------------------------------";
     std::string s1 = " Event | Early Date | Late Date | Time Reserve |";
 
     std::cout << "\n" << delimiter << "\n" << s1 << "\n" << delimiter << "\n";
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
         int n = 7;
-        if (criticalVertices[i]) {
+        if (criticalEvents[i]) {
             std::cout << "*";
             --n;
         }
         std::cout << std::setw(n) << i << "|"
-                  << std::setw(12) << vertices[i].first << "|"
-                  << std::setw(11) << vertices[i].second << "|"
-                  << std::setw(14) << vertices[i].second - vertices[i].first << "|";
+                  << std::setw(12) << eventOccurrenceTime[i].first << "|"
+                  << std::setw(11) << eventOccurrenceTime[i].second << "|"
+                  << std::setw(14) << eventOccurrenceTime[i].second - eventOccurrenceTime[i].first << "|";
         std::cout << "\n";
     }
     std::cout << delimiter << "\n";
 }
 
-void showCriticalVertices(const std::vector<bool> &criticalVertices) {
-    std::cout << "\nCritical vertices: ";
+void showCriticalEvents(const std::vector<bool> &criticalEvents) {
+    std::cout << "\nCritical events: ";
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
-        if (criticalVertices[i]) {
+        if (criticalEvents[i]) {
             std::cout << i << " ";
         }
     }
@@ -276,6 +269,9 @@ void showWorkTable(const std::vector<bool> &criticalEdges, const std::vector<std
     }
     std::cout << "\n" << delimiter << "\n" << s1 << "\n" << delimiter << "\n";
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        int EDGE_BEGIN = edges[i].first.first;
+        int EDGE_END = edges[i].first.second;
+        int EDGE_WEIGHT = edges[i].second;
         int n = 2;
         if (criticalEdges[i]) {
             std::cout << "*";
@@ -285,8 +281,8 @@ void showWorkTable(const std::vector<bool> &criticalEdges, const std::vector<std
         if (i >= 10) {
             --n;
         }
-        std::cout << "b" << i << " = (" << edges[i].first.first << ", " << edges[i].first.second << ")" << std::setw(n)
-                  << "|" << std::setw(10) << edges[i].second
+        std::cout << "b" << i << " = (" << EDGE_BEGIN << ", " << EDGE_END << ")" << std::setw(n)
+                  << "|" << std::setw(10) << EDGE_WEIGHT
                   << "|" << std::setw(19) << timeReserves[i].first
                   << "|" << std::setw(26) << timeReserves[i].second << "|";
         if (dispersion != nullptr) {
@@ -313,10 +309,12 @@ void showNonCriticalRootsTable(const std::vector<std::vector<int>> &nonCriticalR
               << " Non-critical arcs | Time Reserve | Tension Coefficient |"
               << "\n---------------------------------------------------------\n";
     for (int i = 0; i < nonCriticalRoots.size(); ++i) {
-        int n = 16 - nonCriticalRoots[i].size() * 3;
-        std::cout << std::setw(n) << "(" << edges[nonCriticalRoots[i][0]].first.first;
+        int ROOT_START = edges[nonCriticalRoots[i][0]].first.first;
+        int n = 16 - (int) nonCriticalRoots[i].size() * 3;
+        std::cout << std::setw(n) << "(" << ROOT_START;
         for (int j: nonCriticalRoots[i]) {
-            std::cout << ", " << edges[j].first.second;
+            int EDGE_END = edges[j].first.second;
+            std::cout << ", " << EDGE_END;
         }
         std::cout << ") | " << std::setw(13) << R[i] << "|" << std::setw(21) << N[i] << "|\n";
     }
@@ -328,18 +326,48 @@ void Task1() {
 //    const std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
     const std::vector<int> t1 = {0, 5, 8, 3, 6, 4, 1, 2, 6, 3, 9, 7};
     setWeights(t1);
-    fillGraph();
-    std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
-    std::vector<bool> criticalVertices = findCriticalVertices();
+    std::vector<std::pair<int, int>> eventOccurrenceTime = fillGraph();
+    std::vector<std::pair<int, int>> timeReserves = findTimeReserves(eventOccurrenceTime);
+    std::vector<bool> criticalEvents = findCriticalEvents(eventOccurrenceTime);
     std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
-    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalVertices, criticalEdges);
-    std::vector<int> R;
-    std::vector<double> N = findTensionCoefficient(nonCriticalRoots, criticalVertices, &R);
-    showEventTable(criticalVertices);
-    showCriticalVertices(criticalVertices);
+    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
+    std::vector<int> nonCriticalReserves;
+    std::vector<double> nonCriticalTensionCoefficients = findTensionCoefficients(nonCriticalRoots, criticalEvents,
+                                                                                 &nonCriticalReserves);
+    showEventTable(eventOccurrenceTime, criticalEvents);
+    showCriticalEvents(criticalEvents);
     showWorkTable(criticalEdges, timeReserves);
     showCriticalEdges(criticalEdges);
-    showNonCriticalRootsTable(nonCriticalRoots, R, N);
+    showNonCriticalRootsTable(nonCriticalRoots, nonCriticalReserves, nonCriticalTensionCoefficients);
+}
+
+void Task2Func(const std::vector<int> &t_expected, const std::vector<double> &dispersion, const double &RELIABILITY,
+               const double &DEADLINE) {
+    setWeights(t_expected);
+    std::vector<std::pair<int, int>> eventOccurrenceTime = fillGraph();
+    std::vector<bool> criticalEvents = findCriticalEvents(eventOccurrenceTime);
+    std::vector<std::pair<int, int>> timeReserves = findTimeReserves(eventOccurrenceTime);
+    std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
+    double criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
+    showEventTable(eventOccurrenceTime, criticalEvents);
+    showWorkTable(criticalEdges, timeReserves, &dispersion);
+    std::cout << "\nDispersion of critical root: " << criticalDispersion << std::endl;
+    double probability =
+            0.5 + Laplace((DEADLINE - eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second) / criticalDispersion);
+    std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
+    std::cout << "Guarantied completion time: "
+              << eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second - std::round(3 * criticalDispersion)
+              << "-" << eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + std::round(3 * criticalDispersion)
+              << std::endl;
+    //Извините, мне лень делать обратную функцию Лапласа
+//    double a = 1.65;
+    double a = 1.96;
+    std::cout << "Completion time with " << RELIABILITY * 100 << "% reliability: "
+              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second - a * criticalDispersion) << "-"
+              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + a * criticalDispersion) << std::endl;
+    a = 1.65;
+    std::cout << "Maximum completion time with " << RELIABILITY * 100 << "% reliability: "
+              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + a * criticalDispersion) << std::endl;
 }
 
 void Task2() {
@@ -352,55 +380,16 @@ void Task2() {
     const std::vector<int> t_pessimistic = {0, 8, 10, 6, 9, 5, 2, 4, 13, 8, 17, 10};
     const std::vector<int> t_probable = {0, 5, 9, 2, 7, 4, 1, 2, 5, 2, 8, 8};
     const std::vector<int> t_optimistic = {0, 3, 4, 1, 1, 1, 1, 1, 4, 1, 6, 2};
+    const std::vector<double> dispersion = findDispersion(t_pessimistic, t_optimistic);
     const double RELIABILITY = 0.95;
     const int DEADLINE = 21;
     std::vector<int> t_expected = findExpectedTime(t_pessimistic, t_optimistic, &t_probable);
-    setWeights(t_expected);
-    fillGraph();
-    std::vector<double> dispersion = findDispersion(t_pessimistic, t_optimistic);
-    std::vector<bool> criticalVertices = findCriticalVertices();
-    showEventTable(criticalVertices);
-    showCriticalVertices(criticalVertices);
-    std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
-    std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
-    showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
-    showCriticalEdges(criticalEdges);
-    double criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
-    std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
-    double probability = 0.5 + Laplace((DEADLINE - (*(--vertices.end())).second) / criticalDispersion);
-    std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
-    std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
-              << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
-    //Извините, мне лень делать обратную функцию Лапласа
-//    double a = 1.65;
-    double a = 1.96;
-    std::cout << "Completion time with " << RELIABILITY * 100 << "% RELIABILITY: "
-              << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
-              << std::round((*(--vertices.end())).second + a * criticalDispersion);
+    std::cout << "\nThree-parameter model: " << std::endl;
+    Task2Func(t_expected, dispersion, RELIABILITY, DEADLINE);
     //-----------------------------------------------------------------------------
     t_expected = findExpectedTime(t_pessimistic, t_optimistic);
-    setWeights(t_expected);
-    fillGraph();
-    dispersion = findDispersion(t_pessimistic, t_optimistic);
-    criticalVertices = findCriticalVertices();
-    showEventTable(criticalVertices);
-    showCriticalVertices(criticalVertices);
-    timeReserves = findTimeReserves();
-    criticalEdges = findCriticalEdges(timeReserves);
-    showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
-    showCriticalEdges(criticalEdges);
-    criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
-    std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
-    probability = 0.5 + Laplace((DEADLINE - (*(--vertices.end())).second) / criticalDispersion);
-    std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
-    std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
-              << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
-    //Извините, мне лень делать обратную функцию Лапласа
-//    a = 1.65;
-    a = 1.96;
-    std::cout << "Completion time with " << RELIABILITY * 100 << "% RELIABILITY: "
-              << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
-              << std::round((*(--vertices.end())).second + a * criticalDispersion);
+    std::cout << "\nTwo-parameter model: " << std::endl;
+    Task2Func(t_expected, dispersion, RELIABILITY, DEADLINE);
 }
 
 void Task3() {
@@ -409,16 +398,15 @@ void Task3() {
     const std::vector<int> s = {0, 9, 6, 3, 5, 7, 2, 4, 5, 8, 9, 2, 6};
     const int PROJECT_COST = 10;
     setWeights(t_pessimistic);
-    fillGraph();
-    std::vector<bool> criticalVertices = findCriticalVertices();
-    std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
+    std::vector<std::pair<int, int>> eventOccurrenceTime = fillGraph();
+    std::vector<bool> criticalEvents = findCriticalEvents(eventOccurrenceTime);
+    std::vector<std::pair<int, int>> timeReserves = findTimeReserves(eventOccurrenceTime);
     std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
-    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalVertices, criticalEdges);
+    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
     std::vector<int> nonCriticalReserves;
-    findTensionCoefficient(nonCriticalRoots, criticalVertices, &nonCriticalReserves);
-    int TOTAL_COST = PROJECT_COST * (*(--vertices.end())).second;
-//    auto a = std::min_element(nonCriticalReserves.begin(), nonCriticalReserves.end());
-//    std::cout << std::endl << a - nonCriticalReserves.begin();
+    //Да, я вызываю функцию поиска коэффициентов напряженности для нахождения резервов дуги, и что вы мне сделаете
+    findTensionCoefficients(nonCriticalRoots, criticalEvents, &nonCriticalReserves);
+    int TOTAL_COST = PROJECT_COST * eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second;
 }
 
 

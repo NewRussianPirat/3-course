@@ -5,23 +5,42 @@
 #include <vector>
 #include <utility>
 
-const int NUMBER_OF_VERTICES = 8;
-const int NUMBER_OF_EDGES = 13;
+//const int NUMBER_OF_VERTICES = 8;
+//const int NUMBER_OF_EDGES = 13;
+//std::vector<std::pair<int, int>> vertices(NUMBER_OF_VERTICES);
+//std::vector<std::pair<const std::pair<int, int>, int>> edges = {
+//        {{5, 6}, 0},
+//        {{0, 1}, 0},
+//        {{0, 2}, 0},
+//        {{1, 3}, 0},
+//        {{2, 3}, 0},
+//        {{2, 4}, 0},
+//        {{3, 4}, 0},
+//        {{3, 6}, 0},
+//        {{4, 5}, 0},
+//        {{4, 6}, 0},
+//        {{4, 7}, 0},
+//        {{2, 7}, 0},
+//        {{6, 7}, 0}
+//};
+
+//Определение графа
+const int NUMBER_OF_VERTICES = 7;
+const int NUMBER_OF_EDGES = 12;
 std::vector<std::pair<int, int>> vertices(NUMBER_OF_VERTICES);
 std::vector<std::pair<const std::pair<int, int>, int>> edges = {
-        {{5, 6}, 0},
-        {{0, 1}, 0},
-        {{0, 2}, 0},
-        {{1, 3}, 0},
-        {{2, 3}, 0},
-        {{2, 4}, 0},
-        {{3, 4}, 0},
-        {{3, 6}, 0},
-        {{4, 5}, 0},
-        {{4, 6}, 0},
-        {{4, 7}, 0},
-        {{2, 7}, 0},
-        {{6, 7}, 0}
+        {{3, 5}, 0}, //b0
+        {{0, 1}, 0}, //b1
+        {{0, 3}, 0}, //b2
+        {{0, 2}, 0}, //b3
+        {{1, 4}, 0}, //b4
+        {{1, 3}, 0}, //b5
+        {{2, 3}, 0}, //b6
+        {{3, 4}, 0}, //b7
+        {{3, 6}, 0}, //b8
+        {{4, 6}, 0}, //b9
+        {{2, 5}, 0}, //b10
+        {{5, 6}, 0}, //b11
 };
 
 double Laplace(double x) {
@@ -81,26 +100,45 @@ void setWeights(const std::vector<int> &p) {
 
 void fillGraph() {
     vertices[0] = {0, 0};
-    vertices[1] = {vertices[0].first + edges[1].second, 0};
-    vertices[2] = {vertices[0].first + edges[2].second, 0};
-    vertices[3] = {std::max(vertices[1].first + edges[3].second, vertices[2].first + edges[4].second), 0};
-    vertices[4] = {std::max(vertices[2].first + edges[5].second, vertices[3].first + edges[6].second), 0};
-    vertices[5] = {vertices[4].first + edges[8].second, 0};
-    vertices[6] = {std::max(std::max(vertices[3].first + edges[7].second, vertices[4].first + edges[9].second),
-                            vertices[5].first + edges[0].second), 0};
-    vertices[7] = {std::max(std::max(vertices[2].first + edges[11].second, vertices[4].first + edges[10].second),
-                            vertices[6].first + edges[12].second), 0};
-    //---------------------------------------------
-    vertices[7].second = vertices[7].first;
-    vertices[6].second = vertices[7].second - edges[12].second;
-    vertices[5].second = vertices[6].second - edges[0].second;
-    vertices[4].second = std::min(std::min(vertices[7].second - edges[10].second, vertices[6].second - edges[9].second),
-                                  vertices[5].second - edges[8].second);
-    vertices[3].second = std::min(vertices[6].second - edges[7].second, vertices[4].second - edges[6].second);
-    vertices[2].second = std::min(std::min(vertices[7].second - edges[11].second, vertices[4].second - edges[5].second),
-                                  vertices[3].second - edges[4].second);
-    vertices[1].second = vertices[3].second - edges[3].second;
-    vertices[0].second = std::min(vertices[2].second - edges[2].second, vertices[1].second - edges[1].second);
+    for (int i = 1; i < NUMBER_OF_VERTICES; ++i) {
+        vertices[i].first = INT_MIN;
+        for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
+            if (edges[j].first.second == i) {
+                vertices[i].first = std::max(vertices[i].first, vertices[edges[j].first.first].first + edges[j].second);
+            }
+        }
+    }
+    (*(--vertices.end())).second = (*(--vertices.end())).first;
+    for (int i = NUMBER_OF_VERTICES - 2; i >= 0; --i) {
+        vertices[i].second = INT_MAX;
+        for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
+            if (edges[j].first.first == i) {
+                vertices[i].second = std::min(vertices[i].second,
+                                              vertices[edges[j].first.second].second - edges[j].second);
+            }
+        }
+    }
+//    vertices[0] = {0, 0};
+//    vertices[1] = {vertices[0].first + edges[1].second, 0};
+//    vertices[2] = {vertices[0].first + edges[2].second, 0};
+//    vertices[3] = {std::max(vertices[1].first + edges[3].second, vertices[2].first + edges[4].second), 0};
+//    vertices[4] = {std::max(vertices[2].first + edges[5].second, vertices[3].first + edges[6].second), 0};
+//    vertices[5] = {vertices[4].first + edges[8].second, 0};
+//    vertices[6] = {std::max(std::max(vertices[3].first + edges[7].second, vertices[4].first + edges[9].second),
+//                            vertices[5].first + edges[0].second), 0};
+//    vertices[7] = {std::max(std::max(vertices[2].first + edges[11].second, vertices[4].first + edges[10].second),
+//                            vertices[6].first + edges[12].second), 0};
+//    //---------------------------------------------
+//    vertices[7].second = vertices[7].first;
+//    vertices[6].second = vertices[7].second - edges[12].second;
+//    vertices[5].second = vertices[6].second - edges[0].second;
+//    vertices[4].second = std::min(std::min(vertices[7].second - edges[10].second, vertices[6].second - edges[9].second),
+//                                  vertices[5].second - edges[8].second);
+//    vertices[3].second = std::min(vertices[6].second - edges[7].second, vertices[4].second - edges[6].second);
+//    vertices[2].second = std::min(std::min(vertices[7].second - edges[11].second, vertices[4].second - edges[5].second),
+//                                  vertices[3].second - edges[4].second);
+//    vertices[1].second = vertices[3].second - edges[3].second;
+//    vertices[0].second = std::min(vertices[2].second - edges[2].second, vertices[1].second - edges[1].second);
 }
 
 std::vector<std::pair<int, int>> findTimeReserves() {
@@ -112,7 +150,7 @@ std::vector<std::pair<int, int>> findTimeReserves() {
     return r;
 }
 
-std::vector<bool> setCriticalVertices() {
+std::vector<bool> findCriticalVertices() {
     std::vector<bool> criticalVertices(NUMBER_OF_VERTICES, false);
     for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
         if (vertices[i].first == vertices[i].second) {
@@ -122,7 +160,7 @@ std::vector<bool> setCriticalVertices() {
     return criticalVertices;
 }
 
-std::vector<bool> setCriticalEdges(const std::vector<std::pair<int, int>> &timeReserves) {
+std::vector<bool> findCriticalEdges(const std::vector<std::pair<int, int>> &timeReserves) {
     std::vector<bool> criticalEdges(NUMBER_OF_EDGES, false);
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
         if (timeReserves[i].first == 0 && timeReserves[i].second == 0) {
@@ -173,7 +211,7 @@ std::vector<int> findExpectedTime(const std::vector<int> &t_pessimistic, const s
             t_expected[i] = (int) (std::round(
                     (double) (t_pessimistic[i] + 4 * (*t_probable)[i] + t_optimistic[i]) / 6));
         } else {
-            t_expected[i] = (3 * t_pessimistic[i] + 2 * t_optimistic[i]) / 5;
+            t_expected[i] = (int) std::round((double)(3 * t_pessimistic[i] + 2 * t_optimistic[i]) / 5);
         }
     }
     return t_expected;
@@ -287,12 +325,13 @@ void showNonCriticalRootsTable(const std::vector<std::vector<int>> &nonCriticalR
 
 void Task1() {
     std::cout << "Task 1" << std::endl;
-    const std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 10, 9};
+//    const std::vector<int> t1 = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
+    const std::vector<int> t1 = {0, 5, 8, 3, 6, 4, 1, 2, 6, 3, 9, 7};
     setWeights(t1);
     fillGraph();
     std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
-    std::vector<bool> criticalVertices = setCriticalVertices();
-    std::vector<bool> criticalEdges = setCriticalEdges(timeReserves);
+    std::vector<bool> criticalVertices = findCriticalVertices();
+    std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
     std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalVertices, criticalEdges);
     std::vector<int> R;
     std::vector<double> N = findTensionCoefficient(nonCriticalRoots, criticalVertices, &R);
@@ -305,31 +344,37 @@ void Task1() {
 
 void Task2() {
     std::cout << "\nTask 2" << std::endl;
-    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
-    //TODO: не нравится мне здесь 12 на предпоследнем месте, противоречит условию...
-    const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 10, 5};
-    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
-    const double reliability = 0.9;
-    const int deadline = 29;
+//    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
+//    const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 10, 5};
+//    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
+//    const double RELIABILITY = 0.9;
+//    const int DEADLINE = 29;
+    const std::vector<int> t_pessimistic = {0, 8, 10, 6, 9, 5, 2, 4, 13, 8, 17, 10};
+    const std::vector<int> t_probable = {0, 5, 9, 2, 7, 4, 1, 2, 5, 2, 8, 8};
+    const std::vector<int> t_optimistic = {0, 3, 4, 1, 1, 1, 1, 1, 4, 1, 6, 2};
+    const double RELIABILITY = 0.95;
+    const int DEADLINE = 21;
     std::vector<int> t_expected = findExpectedTime(t_pessimistic, t_optimistic, &t_probable);
     setWeights(t_expected);
     fillGraph();
     std::vector<double> dispersion = findDispersion(t_pessimistic, t_optimistic);
-    std::vector<bool> criticalVertices = setCriticalVertices();
+    std::vector<bool> criticalVertices = findCriticalVertices();
     showEventTable(criticalVertices);
     showCriticalVertices(criticalVertices);
     std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
-    std::vector<bool> criticalEdges = setCriticalEdges(timeReserves);
+    std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
     showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
     showCriticalEdges(criticalEdges);
     double criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
     std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
-    double probability = 0.5 + Laplace((deadline - (*(--vertices.end())).second) / criticalDispersion);
-    std::cout << "Probability of completion in time: " << probability << "%\n";
+    double probability = 0.5 + Laplace((DEADLINE - (*(--vertices.end())).second) / criticalDispersion);
+    std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
     std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
               << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
-    double a = 1.65;
-    std::cout << "Completion time with " << reliability * 100 << "% reliability: "
+    //Извините, мне лень делать обратную функцию Лапласа
+//    double a = 1.65;
+    double a = 1.96;
+    std::cout << "Completion time with " << RELIABILITY * 100 << "% RELIABILITY: "
               << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
               << std::round((*(--vertices.end())).second + a * criticalDispersion);
     //-----------------------------------------------------------------------------
@@ -337,33 +382,50 @@ void Task2() {
     setWeights(t_expected);
     fillGraph();
     dispersion = findDispersion(t_pessimistic, t_optimistic);
-    criticalVertices = setCriticalVertices();
+    criticalVertices = findCriticalVertices();
     showEventTable(criticalVertices);
     showCriticalVertices(criticalVertices);
     timeReserves = findTimeReserves();
-    criticalEdges = setCriticalEdges(timeReserves);
+    criticalEdges = findCriticalEdges(timeReserves);
     showWorkTable(criticalEdges, findTimeReserves(), &dispersion);
     showCriticalEdges(criticalEdges);
     criticalDispersion = findCriticalDispersion(criticalEdges, dispersion);
     std::cout << "Dispersion of critical root: " << criticalDispersion << std::endl;
-    probability = 0.5 + Laplace((deadline - (*(--vertices.end())).second) / criticalDispersion);
-    std::cout << "Probability of completion in time: " << probability << "%\n";
+    probability = 0.5 + Laplace((DEADLINE - (*(--vertices.end())).second) / criticalDispersion);
+    std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
     std::cout << "Guarantied completion time: " << (*(--vertices.end())).second - std::round(3 * criticalDispersion)
               << "-" << (*(--vertices.end())).second + std::round(3 * criticalDispersion) << std::endl;
-    a = 1.65;
-    std::cout << "Completion time with " << reliability * 100 << "% reliability: "
+    //Извините, мне лень делать обратную функцию Лапласа
+//    a = 1.65;
+    a = 1.96;
+    std::cout << "Completion time with " << RELIABILITY * 100 << "% RELIABILITY: "
               << std::round((*(--vertices.end())).second - a * criticalDispersion) << "-"
               << std::round((*(--vertices.end())).second + a * criticalDispersion);
 }
 
 void Task3() {
-
+    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
+    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
+    const std::vector<int> s = {0, 9, 6, 3, 5, 7, 2, 4, 5, 8, 9, 2, 6};
+    const int PROJECT_COST = 10;
+    setWeights(t_pessimistic);
+    fillGraph();
+    std::vector<bool> criticalVertices = findCriticalVertices();
+    std::vector<std::pair<int, int>> timeReserves = findTimeReserves();
+    std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
+    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalVertices, criticalEdges);
+    std::vector<int> nonCriticalReserves;
+    findTensionCoefficient(nonCriticalRoots, criticalVertices, &nonCriticalReserves);
+    int TOTAL_COST = PROJECT_COST * (*(--vertices.end())).second;
+//    auto a = std::min_element(nonCriticalReserves.begin(), nonCriticalReserves.end());
+//    std::cout << std::endl << a - nonCriticalReserves.begin();
 }
 
 
 int main() {
-    std::cout << std::setprecision(5);
+    std::cout << std::setprecision(2);
     Task1();
     Task2();
+    Task3();
     return 0;
 }

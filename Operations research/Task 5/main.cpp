@@ -2,10 +2,11 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <vector>
 #include <utility>
 
-//const int NUMBER_OF_VERTICES = 8;
+//const int NUMBER_OF_EVENTS = 8;
 //const int NUMBER_OF_EDGES = 13;
 //std::vector<std::pair<const std::pair<int, int>, int>> edges = {
 //        {{5, 6}, 0},
@@ -24,7 +25,7 @@
 //};
 
 //Определение графа
-const int NUMBER_OF_VERTICES = 7;
+const int NUMBER_OF_EVENTS = 7;
 const int NUMBER_OF_EDGES = 12;
 std::vector<std::pair<const std::pair<int, int>, int>> edges = {
         {{3, 5}, 0}, //b0
@@ -46,8 +47,7 @@ double Laplace(double x) {
 }
 
 void dfs(int begin, int target, const std::vector<bool> &criticalEvents, const std::vector<bool> &criticalEdges,
-         std::vector<std::vector<int>> &nonCriticalRoots,
-         std::vector<int> *root = nullptr) {
+         std::vector<std::vector<int>> &nonCriticalRoots, std::vector<int> *root = nullptr) {
     if (begin > target) {
         return;
     }
@@ -98,9 +98,9 @@ void setWeights(const std::vector<int> &p) {
 }
 
 std::vector<std::pair<int, int>> fillGraph() {
-    std::vector<std::pair<int, int>> eventOccurrenceTime(NUMBER_OF_VERTICES);
+    std::vector<std::pair<int, int>> eventOccurrenceTime(NUMBER_OF_EVENTS);
     eventOccurrenceTime[0] = {0, 0};
-    for (int i = 1; i < NUMBER_OF_VERTICES; ++i) {
+    for (int i = 1; i < NUMBER_OF_EVENTS; ++i) {
         eventOccurrenceTime[i].first = INT_MIN;
         for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
             int EDGE_BEGIN = edges[j].first.first;
@@ -112,8 +112,8 @@ std::vector<std::pair<int, int>> fillGraph() {
             }
         }
     }
-    eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second = eventOccurrenceTime[NUMBER_OF_VERTICES - 1].first;
-    for (int i = NUMBER_OF_VERTICES - 2; i >= 0; --i) {
+    eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second = eventOccurrenceTime[NUMBER_OF_EVENTS - 1].first;
+    for (int i = NUMBER_OF_EVENTS - 2; i >= 0; --i) {
         eventOccurrenceTime[i].second = INT_MAX;
         for (int j = 0; j < NUMBER_OF_EDGES; ++j) {
             int EDGE_BEGIN = edges[j].first.first;
@@ -143,8 +143,8 @@ std::vector<std::pair<int, int>> findTimeReserves(const std::vector<std::pair<in
 }
 
 std::vector<bool> findCriticalEvents(const std::vector<std::pair<int, int>> &eventOccurrenceTime) {
-    std::vector<bool> criticalEvents(NUMBER_OF_VERTICES, false);
-    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+    std::vector<bool> criticalEvents(NUMBER_OF_EVENTS, false);
+    for (int i = 0; i < NUMBER_OF_EVENTS; ++i) {
         if (eventOccurrenceTime[i].first == eventOccurrenceTime[i].second) {
             criticalEvents[i] = true;
         }
@@ -165,9 +165,9 @@ std::vector<bool> findCriticalEdges(const std::vector<std::pair<int, int>> &time
 std::vector<std::vector<int>>
 findNonCriticalRoots(const std::vector<bool> &criticalEvents, const std::vector<bool> &criticalEdges) {
     std::vector<std::vector<int>> nonCriticalRoots;
-    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+    for (int i = 0; i < NUMBER_OF_EVENTS; ++i) {
         if (criticalEvents[i]) {
-            for (int j = i + 1; j < NUMBER_OF_VERTICES; ++j) {
+            for (int j = i + 1; j < NUMBER_OF_EVENTS; ++j) {
                 if (criticalEvents[j]) {
                     dfs(i, j, criticalEvents, criticalEdges, nonCriticalRoots);
                 }
@@ -179,7 +179,7 @@ findNonCriticalRoots(const std::vector<bool> &criticalEvents, const std::vector<
 
 std::vector<double>
 findTensionCoefficients(const std::vector<std::vector<int>> &nonCriticalRoots, const std::vector<bool> &criticalEvents,
-                        std::vector<int> *nonCriticalReserves) {
+                        std::vector<int> &nonCriticalReserves) {
     std::vector<double> nonCriticalTensionCoefficients;
     for (auto i: nonCriticalRoots) {
         int start = edges[*i.begin()].first.first;
@@ -189,7 +189,7 @@ findTensionCoefficients(const std::vector<std::vector<int>> &nonCriticalRoots, c
         for (auto j: i) {
             b += edges[j].second;
         }
-        nonCriticalReserves->push_back(a - b);
+        nonCriticalReserves.push_back(a - b);
         nonCriticalTensionCoefficients.push_back(double(b) / a);
     }
     return nonCriticalTensionCoefficients;
@@ -229,12 +229,122 @@ double findCriticalDispersion(const std::vector<bool> &criticalEdges, const std:
 }
 
 void
+findSuitableForReductionWorks(std::vector<std::vector<int>> &works, std::vector<int> &costReduction,
+                              const std::vector<std::vector<int>> &criticalRoots,
+                              const std::vector<int> &timeReductionReserve, const std::vector<int> &workReductionCost,
+                              const int PROJECT_DAY_COST, int index, int totalCostReduction,
+                              std::vector<int> *setOfWorks = nullptr) {
+    if (index == criticalRoots.size()) {
+        return;
+    }
+    for (int j = 0; j < criticalRoots[index].size(); ++j) {
+        int CURRENT_EDGE = criticalRoots[index][j];
+        if (timeReductionReserve[CURRENT_EDGE] != 0) {
+            if (totalCostReduction - workReductionCost[CURRENT_EDGE] >= 0) {
+                if (setOfWorks != nullptr) {
+                    setOfWorks->push_back(CURRENT_EDGE);
+                } else {
+                    setOfWorks = new std::vector<int>({CURRENT_EDGE});
+                }
+                findSuitableForReductionWorks(works, costReduction, criticalRoots, timeReductionReserve,
+                                              workReductionCost, PROJECT_DAY_COST, index + 1,
+                                              totalCostReduction - workReductionCost[CURRENT_EDGE], setOfWorks);
+                if (setOfWorks != nullptr && setOfWorks->size() == criticalRoots.size()) {
+                    works.push_back(*setOfWorks);
+                    costReduction.push_back(totalCostReduction - workReductionCost[CURRENT_EDGE]);
+
+                }
+                if (setOfWorks != nullptr) {
+                    setOfWorks->pop_back();
+                }
+            }
+        }
+    }
+}
+
+
+std::vector<int> findNonCriticalReservesTask3(const std::vector<std::vector<int>> &criticalRoots,
+                                              const std::vector<std::vector<int>> &nonCriticalRoots,
+                                              const std::vector<std::pair<int, int>> &eventOccurrenceTime) {
+    std::vector<int> nonCriticalReserves;
+    for (auto i: nonCriticalRoots) {
+        bool eventsAreInDifferentRoots = true;
+        int start = edges[*i.begin()].first.first;
+        int finish = edges[*(--i.end())].first.second;
+        std::vector<int> criticalRoot;
+        for (auto &j: criticalRoots) {
+            bool startInRoot = false;
+            bool finishInRoot = false;
+            for (auto k: j) {
+                if (!startInRoot && edges[k].first.first == start) {
+                    startInRoot = true;
+                }
+                if (!finishInRoot && edges[k].first.second == finish) {
+                    finishInRoot = true;
+                }
+                if (startInRoot && finishInRoot) {
+                    eventsAreInDifferentRoots = false;
+                    criticalRoot = j;
+                    break;
+                }
+            }
+            if (!eventsAreInDifferentRoots) {
+                break;
+            }
+        }
+        int b = 0;
+        for (auto j: i) {
+            b += edges[j].second;
+        }
+        if (eventsAreInDifferentRoots) {
+            nonCriticalReserves.push_back(eventOccurrenceTime[finish].first - eventOccurrenceTime[start].first - b);
+        } else {
+            int a = 0;
+            bool begin = false;
+            for (auto j: criticalRoot) {
+                if (!begin && edges[j].first.first == start) {
+                    begin = true;
+                }
+                if (begin) {
+                    a += edges[j].second;
+                }
+                if (edges[j].first.second == finish) {
+                    break;
+                }
+            }
+            nonCriticalReserves.push_back(a - b);
+        }
+    }
+    return nonCriticalReserves;
+}
+
+void findPossibleEdgesCombination(const std::vector<std::vector<int>> &nonCriticalRoots,
+                                  const std::vector<int> &parallelNonCriticalRoots,
+                                  const std::vector<int> &workReductionCost,
+                                  std::vector<std::pair<int, int>> &minimalReserveRoots,
+                                  std::vector<std::vector<int>> &possibleEdgesCombination,
+                                  int index,
+                                  std::vector<int> *currentCombination = nullptr) {
+    const auto& currentRoot = nonCriticalRoots[parallelNonCriticalRoots[index]];
+    for (int i = 0; i < currentRoot.size(); ++i) {
+        if (currentCombination == nullptr) {
+            currentCombination = new std::vector({currentRoot[i]});
+        } else {
+            currentCombination->push_back(currentRoot[i]);
+        }
+        for (int j = 0; j < minimalReserveRoots.size(); ++j) {
+//TODO: Остановился здесь
+        }
+    }
+}
+
+void
 showEventTable(const std::vector<std::pair<int, int>> &eventOccurrenceTime, const std::vector<bool> &criticalEvents) {
     std::string delimiter = "------------------------------------------------";
     std::string s1 = " Event | Early Date | Late Date | Time Reserve |";
 
     std::cout << "\n" << delimiter << "\n" << s1 << "\n" << delimiter << "\n";
-    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+    for (int i = 0; i < NUMBER_OF_EVENTS; ++i) {
         int n = 7;
         if (criticalEvents[i]) {
             std::cout << "*";
@@ -251,7 +361,7 @@ showEventTable(const std::vector<std::pair<int, int>> &eventOccurrenceTime, cons
 
 void showCriticalEvents(const std::vector<bool> &criticalEvents) {
     std::cout << "\nCritical events: ";
-    for (int i = 0; i < NUMBER_OF_VERTICES; ++i) {
+    for (int i = 0; i < NUMBER_OF_EVENTS; ++i) {
         if (criticalEvents[i]) {
             std::cout << i << " ";
         }
@@ -333,7 +443,7 @@ void Task1() {
     std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
     std::vector<int> nonCriticalReserves;
     std::vector<double> nonCriticalTensionCoefficients = findTensionCoefficients(nonCriticalRoots, criticalEvents,
-                                                                                 &nonCriticalReserves);
+                                                                                 nonCriticalReserves);
     showEventTable(eventOccurrenceTime, criticalEvents);
     showCriticalEvents(criticalEvents);
     showWorkTable(criticalEdges, timeReserves);
@@ -353,21 +463,22 @@ void Task2Func(const std::vector<int> &t_expected, const std::vector<double> &di
     showWorkTable(criticalEdges, timeReserves, &dispersion);
     std::cout << "\nDispersion of critical root: " << criticalDispersion << std::endl;
     double probability =
-            0.5 + Laplace((DEADLINE - eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second) / criticalDispersion);
+            0.5 + Laplace((DEADLINE - eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second) / criticalDispersion);
     std::cout << "Probability of completion in time: " << probability * 100 << "%\n";
     std::cout << "Guarantied completion time: "
-              << eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second - std::round(3 * criticalDispersion)
-              << "-" << eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + std::round(3 * criticalDispersion)
+              << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second - std::round(3 * criticalDispersion)
+              << "-" << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second + std::round(3 * criticalDispersion)
               << std::endl;
     //Извините, мне лень делать обратную функцию Лапласа
 //    double a = 1.65;
     double a = 1.96;
     std::cout << "Completion time with " << RELIABILITY * 100 << "% reliability: "
-              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second - a * criticalDispersion) << "-"
-              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + a * criticalDispersion) << std::endl;
+              << std::round(eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second - a * criticalDispersion) << "-"
+              << std::round(eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second + a * criticalDispersion) << std::endl;
+//    a = 1.28;
     a = 1.65;
     std::cout << "Maximum completion time with " << RELIABILITY * 100 << "% reliability: "
-              << std::round(eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second + a * criticalDispersion) << std::endl;
+              << std::round(eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second + a * criticalDispersion) << std::endl;
 }
 
 void Task2() {
@@ -393,22 +504,128 @@ void Task2() {
 }
 
 void Task3() {
-    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
-    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
-    const std::vector<int> s = {0, 9, 6, 3, 5, 7, 2, 4, 5, 8, 9, 2, 6};
-    const int PROJECT_COST = 10;
+    std::cout << "\nTask 3" << std::endl;
+//    const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
+//    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
+//    const std::vector<int> workReductionCost = {0, 9, 6, 3, 5, 7, 2, 4, 5, 8, 9, 2, 6};
+    const std::vector<int> t_pessimistic = {0, 8, 10, 6, 9, 5, 2, 4, 13, 8, 17, 10};
+    const std::vector<int> t_optimistic = {0, 3, 4, 1, 1, 1, 1, 1, 4, 1, 6, 2};
+    const std::vector<int> workReductionCost = {0, 6, 8, 4, 6, 3, 2, 3, 9, 5, 10, 7};
+    const int PROJECT_DAY_COST = 10;
+    std::vector<int> timeReductionReserve(NUMBER_OF_EDGES);
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        timeReductionReserve[i] = t_pessimistic[i] - t_optimistic[i];
+    }
     setWeights(t_pessimistic);
     std::vector<std::pair<int, int>> eventOccurrenceTime = fillGraph();
     std::vector<bool> criticalEvents = findCriticalEvents(eventOccurrenceTime);
     std::vector<std::pair<int, int>> timeReserves = findTimeReserves(eventOccurrenceTime);
     std::vector<bool> criticalEdges = findCriticalEdges(timeReserves);
-    std::vector<std::vector<int>> nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
+    std::vector<std::vector<int>> nonCriticalRoots;
     std::vector<int> nonCriticalReserves;
-    //Да, я вызываю функцию поиска коэффициентов напряженности для нахождения резервов дуги, и что вы мне сделаете
-    findTensionCoefficients(nonCriticalRoots, criticalEvents, &nonCriticalReserves);
-    int TOTAL_COST = PROJECT_COST * eventOccurrenceTime[NUMBER_OF_VERTICES - 1].second;
-}
+    std::vector<std::vector<int>> criticalRoots(1);
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        if (criticalEdges[i]) {
+            criticalRoots[0].push_back(i);
+        }
+    }
+    int TOTAL_COST = PROJECT_DAY_COST * eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second;
+    int MAX_COST = 0;
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        MAX_COST += timeReductionReserve[i] * workReductionCost[i];
+    }
+    do {
+        nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
+        nonCriticalReserves = findNonCriticalReservesTask3(criticalRoots, nonCriticalRoots,
+                                                           eventOccurrenceTime);
+        int nonCriticalRootIndex = (int) (std::min_element(nonCriticalReserves.begin(), nonCriticalReserves.end()) -
+                                          nonCriticalReserves.begin());
+        int timeReduction = nonCriticalReserves[nonCriticalRootIndex];
+        std::vector<std::vector<int>> works;
+        std::vector<int> costReduction;
+        findSuitableForReductionWorks(works, costReduction, criticalRoots, timeReductionReserve, workReductionCost,
+                                      PROJECT_DAY_COST, 0, PROJECT_DAY_COST);
+        if (works.empty()) {
+            break;
+        }
+        std::vector<int> workReductionTimeReserve(works.size(), INT_MAX);
+        for (int i = 0; i < works.size(); ++i) {
+            for (int j = 0; j < works[i].size(); ++j) {
+                workReductionTimeReserve[i] = std::min(workReductionTimeReserve[i], timeReductionReserve[works[i][j]]);
+            }
+        }
+        if (std::accumulate(workReductionTimeReserve.begin(), workReductionTimeReserve.end(), 0) >= timeReduction) {
+            while (timeReduction != 0) {
+                int CURRENT_WORK = (int) (std::max_element(costReduction.begin(), costReduction.end()) -
+                                          costReduction.begin());
+                if (timeReduction > workReductionTimeReserve[CURRENT_WORK]) {
+                    TOTAL_COST -= workReductionTimeReserve[CURRENT_WORK] * costReduction[CURRENT_WORK];
+                    timeReduction -= workReductionTimeReserve[CURRENT_WORK];
+                    for (auto i: works[CURRENT_WORK]) {
+                        timeReductionReserve[i] -= workReductionTimeReserve[CURRENT_WORK];
+                        edges[i].second -= workReductionTimeReserve[CURRENT_WORK];
+                    }
+                    costReduction[CURRENT_WORK] = INT_MIN;
+                } else {
+                    TOTAL_COST -= timeReduction * costReduction[CURRENT_WORK];
+                    for (auto i: works[CURRENT_WORK]) {
+                        timeReductionReserve[i] -= timeReduction;
+                        edges[i].second -= timeReduction;
+                    }
+                    timeReduction = 0;
+                }
+                eventOccurrenceTime = fillGraph();
+            }
+            criticalRoots.push_back(nonCriticalRoots[nonCriticalRootIndex]);
+            for (auto i: nonCriticalRoots[nonCriticalRootIndex]) {
+                criticalEdges[i] = true;
+                criticalEvents[edges[i].first.second] = true;
+            }
+        } else {
+            break;
+        }
+    } while (true);
+    showEventTable(eventOccurrenceTime, criticalEvents);
+    timeReserves = findTimeReserves(eventOccurrenceTime);
+    showWorkTable(criticalEdges, timeReserves);
+    std::cout << "\nOptimal variant: " << "\nMinimum completion time: "
+              << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].first << "\nCost of the project: " << TOTAL_COST
+              << std::endl;
+    setWeights(t_optimistic);
+    eventOccurrenceTime = fillGraph();
+    MAX_COST += eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second * PROJECT_DAY_COST;
+    timeReserves = findTimeReserves(eventOccurrenceTime);
+    criticalEvents = findCriticalEvents(eventOccurrenceTime);
+    criticalEdges = findCriticalEdges(timeReserves);
+    nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        if (criticalEdges[i]) {
+            criticalRoots[0].push_back(i);
+        }
+    }
+    nonCriticalReserves = findNonCriticalReservesTask3(criticalRoots, nonCriticalRoots, eventOccurrenceTime);
+    showEventTable(eventOccurrenceTime, criticalEvents);
+    showWorkTable(criticalEdges, timeReserves);
+    std::vector<int> parallelNonCriticalRoots;
+    std::vector<std::pair<int, int>> minimalReserveRoots;
+    int MINIMAL_RESERVE = *(std::min_element(nonCriticalReserves.begin(), nonCriticalReserves.end()));
+    for (int i = 0; i < nonCriticalRoots.size(); ++i) {
+        if (edges[nonCriticalRoots[i][0]].first.first == 0 &&
+            edges[*(--nonCriticalRoots[i].end())].first.second == NUMBER_OF_EVENTS - 1) {
+            bool haveSame = false;
+            for (auto j : parallelNonCriticalRoots) {
+                if (nonCriticalReserves[j] == nonCriticalReserves[i]) {
+                    haveSame = true;
+                    break;
+                }
+            }
+            if (!haveSame) {
+                parallelNonCriticalRoots.push_back(i);
+            }
+        }
+    }
 
+}
 
 int main() {
     std::cout << std::setprecision(2);

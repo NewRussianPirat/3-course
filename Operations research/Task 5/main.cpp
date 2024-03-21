@@ -349,21 +349,126 @@ std::vector<int> findNonCriticalReservesTask3(const std::vector<std::vector<int>
     return nonCriticalReserves;
 }
 
+void balanceCriticalRoots(const std::vector<std::vector<int>> &criticalRoots,
+                          const std::vector<std::vector<int>> &reliedCriticalRoots,
+                          std::vector<std::vector<std::vector<int>>> &edgesCombinations,
+                          std::vector<int> &timeReductionReserve,
+                          std::vector<int> &criticalRootsReserves,
+                          std::vector<std::vector<int>> &currentCombination,
+                          int cost,
+                          int index = 0,
+                          bool continuingSameRoot = false) {
+    if (index == criticalRoots.size()) {
+        bool ok = true;
+        for (int i = 0; i < criticalRoots.size(); ++i) {
+            if (criticalRootsReserves[i] != 0) {
+                ok = false;
+            }
+        }
+        if (ok) {
+            edgesCombinations.push_back(currentCombination);
+        }
+        return;
+    }
+    if (criticalRootsReserves[index] != 0) {
+        for (int i = 0; i < criticalRoots[index].size(); ++i) {
+            int edge = criticalRoots[index][i];
+            if (timeReductionReserve[edge] > 0 &&
+                cost - workReductionCost[edge] >= 0) {
+                bool possibleToReduce = true;
+                for (const auto &reliedCriticalRoot: reliedCriticalRoots) {
+                    if (std::find(reliedCriticalRoot.begin(), reliedCriticalRoot.end(),
+                                  edge) != reliedCriticalRoot.end()) {
+                        possibleToReduce = false;
+                    }
+                }
+                if (possibleToReduce) {
+                    int currentCost = workReductionCost[edge];
+                    if (!continuingSameRoot) {
+                        for (auto &j: currentCombination) {
+                            j[2] -= currentCost;
+                        }
+                    }
+                    int a;
+                    bool lessThanCriticalRootReserve = false;
+                    if (timeReductionReserve[edge] >= criticalRootsReserves[index]) {
+                        a = criticalRootsReserves[index];
+                    } else {
+                        a = timeReductionReserve[edge];
+                        lessThanCriticalRootReserve = true;
+                    }
+                    timeReductionReserve[edge] -= a;
+                    criticalRootsReserves[index] -= a;
+                    bool possibleToContinue = true;
+                    currentCombination.push_back({edge, a, cost - currentCost});
+                    for (int j = 0; j < criticalRoots.size(); ++j) {
+                        if (j == index) {
+                            continue;
+                        }
+                        if (std::find(criticalRoots[j].begin(), criticalRoots[j].end(), edge) !=
+                            criticalRoots[j].end()) {
+                            criticalRootsReserves[j] -= a;
+                            if (criticalRootsReserves[j] < 0) {
+                                possibleToContinue = false;
+                            }
+                        }
+                    }
+                    if (possibleToContinue) {
+                        int newIndex = index;
+                        int newCost = cost;
+                        if (!lessThanCriticalRootReserve) {
+                            ++newIndex;
+                            newCost -= currentCost;
+                        }
+                        balanceCriticalRoots(criticalRoots, reliedCriticalRoots, edgesCombinations,
+                                             timeReductionReserve,
+                                             criticalRootsReserves, currentCombination,
+                                             newCost, newIndex);
+                    }
+                    timeReductionReserve[edge] += a;
+                    criticalRootsReserves[index] += a;
+                    for (int j = 0; j < criticalRoots.size(); ++j) {
+                        if (std::find(criticalRoots[j].begin(), criticalRoots[j].end(), edge) !=
+                            criticalRoots[j].end()) {
+                            criticalRootsReserves[j] += a;
+                        }
+                    }
+                    if (!continuingSameRoot) {
+                        for (auto &j: currentCombination) {
+                            j[2] += currentCost;
+                        }
+                    }
+                    currentCombination.pop_back();
+                }
+            }
+        }
+    } else {
+        balanceCriticalRoots(criticalRoots, reliedCriticalRoots, edgesCombinations, timeReductionReserve,
+                             criticalRootsReserves,
+                             currentCombination, cost, index + 1);
+    }
+}
+
 void findPossibleEdgesCombination(const std::vector<std::vector<int>> &criticalRoots,
                                   const std::vector<std::vector<int>> &reliedCriticalRoots,
                                   std::vector<int> &timeReductionReserve,
-                                  std::vector<std::vector<std::pair<int, int>>> &edgesCombinations,
+                                  std::vector<std::vector<std::vector<int>>> &edgesCombinations,
                                   std::vector<int> &criticalRootsReserves,
                                   std::vector<int> &reliedCriticalRootsReserves,
-                                  std::vector<std::pair<int, int>> *currentCombination = nullptr,
+                                  std::vector<std::vector<int>> *currentCombination = nullptr,
                                   int currentEdge = -1,
                                   int index = 0,
                                   int cost = PROJECT_DAY_COST,
                                   bool continuingSameRoot = false) {
+    if (reliedCriticalRoots.empty()) {
+        return;
+    }
     if (index == reliedCriticalRoots.size()) {
         auto a = std::minmax(reliedCriticalRootsReserves.begin(), --reliedCriticalRootsReserves.end());
         if (*a.first == 0 && *a.second == 0) {
-            edgesCombinations.push_back(*currentCombination);
+            balanceCriticalRoots(criticalRoots, reliedCriticalRoots, edgesCombinations, timeReductionReserve,
+                                 criticalRootsReserves,
+                                 *currentCombination, cost);
         }
         return;
     }
@@ -378,6 +483,17 @@ void findPossibleEdgesCombination(const std::vector<std::vector<int>> &criticalR
     for (int i = 0; i < reliedCriticalRoots[index].size(); ++i) {
         int edge = reliedCriticalRoots[index][i];
         if (timeReductionReserve[edge] != 0 && cost - workReductionCost[edge] >= 0) {
+            int biggestCost = workReductionCost[edge];
+            if (!continuingSameRoot && currentCombination != nullptr && !currentCombination->empty()) {
+                int a = (*(--currentCombination->end()))[2];
+                if (a > biggestCost) {
+                    std::swap(a, biggestCost);
+                } else if (a < biggestCost) {
+                    for (auto &j: *currentCombination) {
+                        j[2] += a - biggestCost;
+                    }
+                }
+            }
             int a;
             bool lessThanCriticalRootReserve = false;
             if (timeReductionReserve[edge] >= reliedCriticalRootsReserves[index]) {
@@ -387,19 +503,22 @@ void findPossibleEdgesCombination(const std::vector<std::vector<int>> &criticalR
                 lessThanCriticalRootReserve = true;
             }
             if (currentCombination == nullptr) {
-                currentCombination = new std::vector<std::pair<int, int>>(
-                        {{edge, a * (cost - workReductionCost[edge])}});
+                currentCombination = new std::vector<std::vector<int>>(
+                        {{edge, a, cost - biggestCost}});
             } else {
-                currentCombination->emplace_back(edge, a * (cost - workReductionCost[edge]));
+                currentCombination->push_back({edge, a, cost - biggestCost});
             }
             timeReductionReserve[edge] -= a;
             reliedCriticalRootsReserves[index] -= a;
+            bool possibleToContinue = true;
             for (int j = 0; j < criticalRoots.size(); ++j) {
                 if (std::find(criticalRoots[j].begin(), criticalRoots[j].end(), edge) != criticalRoots[j].end()) {
                     criticalRootsReserves[j] -= a;
+                    if (criticalRootsReserves[j] < 0) {
+                        possibleToContinue = false;
+                    }
                 }
             }
-            bool possibleToContinue = true;
             for (int j = 0; j < reliedCriticalRoots.size(); ++j) {
                 if (j == index) {
                     continue;
@@ -417,7 +536,7 @@ void findPossibleEdgesCombination(const std::vector<std::vector<int>> &criticalR
                 int newCost = cost;
                 if (!lessThanCriticalRootReserve) {
                     ++newIndex;
-                    newCost -= workReductionCost[edge];
+                    newCost -= biggestCost;
                 }
                 findPossibleEdgesCombination(criticalRoots, reliedCriticalRoots, timeReductionReserve,
                                              edgesCombinations,
@@ -439,6 +558,11 @@ void findPossibleEdgesCombination(const std::vector<std::vector<int>> &criticalR
                 if (std::find(reliedCriticalRoots[j].begin(), reliedCriticalRoots[j].end(), edge) !=
                     reliedCriticalRoots[j].end()) {
                     reliedCriticalRootsReserves[j] += a;
+                }
+            }
+            if (!continuingSameRoot) {
+                for (auto &j: *currentCombination) {
+                    j[2] += biggestCost;
                 }
             }
             currentCombination->pop_back();
@@ -640,7 +764,7 @@ void Task3() {
                                                 edges[*(--nonCriticalRoots[nonCriticalRootIndex].end())].first.second);
         std::vector<int> criticalRootsReserve(criticalRoots.size(), timeReduction);
         std::vector<int> reliedCriticalRootsReserve(reliedCriticalRoots.size(), timeReduction);
-        std::vector<std::vector<std::pair<int, int>>> edgesCombinations;
+        std::vector<std::vector<std::vector<int>>> edgesCombinations;
         findPossibleEdgesCombination(criticalRoots, reliedCriticalRoots, timeReductionReserve, edgesCombinations,
                                      criticalRootsReserve, reliedCriticalRootsReserve);
         if (edgesCombinations.empty()) {
@@ -650,23 +774,25 @@ void Task3() {
         int bestSumIndex;
         for (int i = 0; i < edgesCombinations.size(); ++i) {
             int currentSum = 0;
-            for (const auto & j : edgesCombinations[i]) {
-                currentSum += j.second;
+            for (const auto &j: edgesCombinations[i]) {
+                currentSum += j[1] * j[2];
             }
             if (currentSum > bestSum) {
                 bestSum = currentSum;
                 bestSumIndex = i;
             }
         }
-        for (auto i: edgesCombinations[bestSumIndex]) {
-            edges[i.first].second -= i.second / (PROJECT_DAY_COST - workReductionCost[i.first]);
-            timeReductionReserve[i.first] -= i.second / (PROJECT_DAY_COST - workReductionCost[i.first]);
+        for (const auto &i: edgesCombinations[bestSumIndex]) {
+            edges[i[0]].second -= i[1];
+            timeReductionReserve[i[0]] -= i[1];
         }
         TOTAL_COST -= bestSum;
         setGraphInfo(eventOccurrenceTime, timeReserves, criticalEvents, criticalEdges);
     }
     showEventTable(eventOccurrenceTime, criticalEvents);
     showWorkTable(criticalEdges, timeReserves);
+    std::cout << "\nCompletion time: " << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second
+              << "\nTotal project cost: " << TOTAL_COST;
 }
 
 int main() {

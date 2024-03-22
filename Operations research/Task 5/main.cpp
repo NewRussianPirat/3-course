@@ -2,10 +2,10 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <numeric>
 #include <vector>
 #include <utility>
 
+//Определение графа
 const int NUMBER_OF_EVENTS = 8;
 const int NUMBER_OF_EDGES = 13;
 std::vector<std::pair<const std::pair<int, int>, int>> edges = {
@@ -26,36 +26,10 @@ std::vector<std::pair<const std::pair<int, int>, int>> edges = {
 const std::vector<int> t_pessimistic = {0, 15, 7, 5, 6, 8, 6, 10, 8, 9, 11, 12, 9};
 const std::vector<int> t_probable = {0, 9, 5, 3, 4, 6, 4, 5, 5, 7, 8, 12, 5};
 const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 2, 2, 3, 1, 4, 6, 3, 2};
-//    const std::vector<int> t_optimistic = {0, 3, 4, 2, 1, 3, 2, 6, 4, 4, 6, 9, 2};
 const std::vector<int> workReductionCost = {0, 9, 6, 3, 5, 7, 2, 4, 5, 8, 9, 2, 6};
 const double RELIABILITY = 0.9;
 const int DEADLINE = 29;
 const int PROJECT_DAY_COST = 10;
-
-//Определение графа
-//const int NUMBER_OF_EVENTS = 7;
-//const int NUMBER_OF_EDGES = 12;
-//std::vector<std::pair<const std::pair<int, int>, int>> edges = {
-//        {{3, 5}, 0}, //b0
-//        {{0, 1}, 0}, //b1
-//        {{0, 3}, 0}, //b2
-//        {{0, 2}, 0}, //b3
-//        {{1, 4}, 0}, //b4
-//        {{1, 3}, 0}, //b5
-//        {{2, 3}, 0}, //b6
-//        {{3, 4}, 0}, //b7
-//        {{3, 6}, 0}, //b8
-//        {{4, 6}, 0}, //b9
-//        {{2, 5}, 0}, //b10
-//        {{5, 6}, 0}, //b11
-//};
-//const std::vector<int> t_pessimistic = {0, 8, 10, 6, 9, 5, 2, 4, 13, 8, 17, 10};
-//const std::vector<int> t_probable = {0, 5, 9, 2, 7, 4, 1, 2, 5, 2, 8, 8};
-//const std::vector<int> t_optimistic = {0, 3, 4, 1, 1, 1, 1, 1, 4, 1, 6, 2};
-//const std::vector<int> workReductionCost = {0, 6, 8, 4, 6, 3, 2, 3, 9, 5, 10, 7};
-//const double RELIABILITY = 0.95;
-//const int DEADLINE = 21;
-//const int PROJECT_DAY_COST = 10;
 
 double Laplace(double x) {
     return 0.5 * std::erf(x / std::sqrt(2.0));
@@ -257,42 +231,6 @@ double findCriticalDispersion(const std::vector<bool> &criticalEdges, const std:
     }
     return std::sqrt(result);
 }
-
-void
-findSuitableForReductionWorks(std::vector<std::vector<int>> &works, std::vector<int> &costReduction,
-                              const std::vector<std::vector<int>> &criticalRoots,
-                              const std::vector<int> &timeReductionReserve,
-                              const std::vector<int> &nonCriticalRoot,
-                              int index, int totalCostReduction,
-                              std::vector<int> *setOfWorks = nullptr) {
-    if (index == criticalRoots.size()) {
-        return;
-    }
-    for (int j = 0; j < criticalRoots[index].size(); ++j) {
-        int CURRENT_EDGE = criticalRoots[index][j];
-        if (timeReductionReserve[CURRENT_EDGE] != 0) {
-            if (totalCostReduction - workReductionCost[CURRENT_EDGE] >= 0) {
-                if (setOfWorks != nullptr) {
-                    setOfWorks->push_back(CURRENT_EDGE);
-                } else {
-                    setOfWorks = new std::vector<int>({CURRENT_EDGE});
-                }
-                findSuitableForReductionWorks(works, costReduction, criticalRoots, timeReductionReserve,
-                                              nonCriticalRoot, index + 1,
-                                              totalCostReduction - workReductionCost[CURRENT_EDGE], setOfWorks);
-                if (setOfWorks != nullptr && setOfWorks->size() == criticalRoots.size()) {
-                    works.push_back(*setOfWorks);
-                    costReduction.push_back(totalCostReduction - workReductionCost[CURRENT_EDGE]);
-
-                }
-                if (setOfWorks != nullptr) {
-                    setOfWorks->pop_back();
-                }
-            }
-        }
-    }
-}
-
 
 std::vector<int> findNonCriticalReservesTask3(const std::vector<std::vector<int>> &criticalRoots,
                                               const std::vector<std::vector<int>> &nonCriticalRoots,
@@ -737,6 +675,7 @@ void Task2() {
 
 void Task3() {
     std::cout << "\nTask 3" << std::endl;
+    std::cout << "\nOptimal plan\n";
     std::vector<int> timeReductionReserve(NUMBER_OF_EDGES);
     for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
         timeReductionReserve[i] = t_pessimistic[i] - t_optimistic[i];
@@ -793,7 +732,8 @@ void Task3() {
     showEventTable(eventOccurrenceTime, criticalEvents);
     showWorkTable(criticalEdges, timeReserves);
     std::cout << "\nCompletion time: " << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second
-              << "\nTotal project cost: " << TOTAL_COST;
+              << "\nTotal project cost: " << TOTAL_COST << std::endl;
+    std::cout << "\nMinimal completion time\n";
     setWeights(t_optimistic);
     setGraphInfo(eventOccurrenceTime, timeReserves, criticalEvents, criticalEdges);
     TOTAL_COST = eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second * PROJECT_DAY_COST;
@@ -810,6 +750,8 @@ void Task3() {
     setGraphInfo(eventOccurrenceTime, timeReserves, criticalEvents, criticalEdges);
     showEventTable(eventOccurrenceTime, criticalEvents);
     showWorkTable(criticalEdges, timeReserves);
+    std::cout << "\nCompletion time: " << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second
+              << "\nTotal project cost: " << TOTAL_COST << std::endl;
 }
 
 int main() {

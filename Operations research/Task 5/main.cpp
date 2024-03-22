@@ -751,6 +751,7 @@ void Task3() {
     std::vector<int> nonCriticalReserves;
     std::vector<std::vector<int>> criticalRoots;
     std::vector<std::vector<int>> reliedCriticalRoots;
+    std::vector<std::vector<std::vector<int>>> edgesCombinations;
     int TOTAL_COST = PROJECT_DAY_COST * eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second;
     while (true) {
         nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
@@ -764,7 +765,7 @@ void Task3() {
                                                 edges[*(--nonCriticalRoots[nonCriticalRootIndex].end())].first.second);
         std::vector<int> criticalRootsReserve(criticalRoots.size(), timeReduction);
         std::vector<int> reliedCriticalRootsReserve(reliedCriticalRoots.size(), timeReduction);
-        std::vector<std::vector<std::vector<int>>> edgesCombinations;
+        edgesCombinations.clear();
         findPossibleEdgesCombination(criticalRoots, reliedCriticalRoots, timeReductionReserve, edgesCombinations,
                                      criticalRootsReserve, reliedCriticalRootsReserve);
         if (edgesCombinations.empty()) {
@@ -793,6 +794,22 @@ void Task3() {
     showWorkTable(criticalEdges, timeReserves);
     std::cout << "\nCompletion time: " << eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second
               << "\nTotal project cost: " << TOTAL_COST;
+    setWeights(t_optimistic);
+    setGraphInfo(eventOccurrenceTime, timeReserves, criticalEvents, criticalEdges);
+    TOTAL_COST = eventOccurrenceTime[NUMBER_OF_EVENTS - 1].second * PROJECT_DAY_COST;
+    for (int i = 0; i < NUMBER_OF_EDGES; ++i) {
+        TOTAL_COST += (t_pessimistic[i] - t_optimistic[i]) * workReductionCost[i];
+    }
+    nonCriticalRoots = findNonCriticalRoots(criticalEvents, criticalEdges);
+    criticalRoots = findCriticalRoots(criticalEvents, criticalEdges, 0, NUMBER_OF_EVENTS - 1);
+    nonCriticalReserves = findNonCriticalReservesTask3(criticalRoots, nonCriticalRoots, eventOccurrenceTime);
+    for (int i = 0; i < nonCriticalRoots.size(); ++i) {
+        edges[nonCriticalRoots[i][0]].second += nonCriticalReserves[i];
+        TOTAL_COST -= nonCriticalReserves[i] * workReductionCost[nonCriticalRoots[i][0]];
+    }
+    setGraphInfo(eventOccurrenceTime, timeReserves, criticalEvents, criticalEdges);
+    showEventTable(eventOccurrenceTime, criticalEvents);
+    showWorkTable(criticalEdges, timeReserves);
 }
 
 int main() {

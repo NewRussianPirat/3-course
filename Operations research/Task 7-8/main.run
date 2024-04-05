@@ -1,0 +1,68 @@
+printf "\n\nSubtask 1\n\n";
+
+reset;
+model mod_pl1.mod;
+data d1.dat;
+option solver cplex;
+solve;
+display v, p1;
+
+reset;
+model mod_pl2.mod;
+data d1.dat;
+option solver cplex;
+solve;
+display v, p2;
+
+printf "\n\nSubtask 2\n\n";
+
+reset;
+model mod_pl1.mod;
+data d21.dat;
+option solver cplex;
+solve;
+display v, p1;
+
+reset;
+model mod_pl2.mod;
+data d21.dat;
+option solver cplex;
+solve;
+display v, p2;
+
+reset;
+model mod_pl1.mod;
+data d22.dat;
+option solver cplex;
+solve;
+display v, p1;
+
+reset;
+model mod_pl2.mod;
+data d22.dat;
+option solver cplex;
+solve;
+display v, p2;
+
+printf "\n\nSubtask 3\n\n";
+
+reset;
+model mod_pl1.mod;
+data d3.dat;
+option solver cplex;
+solve;
+display v, p1;
+
+reset;
+model mod_pl2.mod;
+data d3.dat;
+option solver cplex;
+solve;
+display v, p2;
+
+printf "\n\nSubtask 4\n\n";
+
+reset;
+model mod_task4.mod;
+data d4.dat;
+display a, r, Wald, Savage, Hurwitz, Laplace;

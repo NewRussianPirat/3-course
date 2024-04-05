@@ -1,0 +1,31 @@
+set M := 5 6 7 8;
+set N := 5 6 7 8;
+param p := 300;
+param c := 50;
+param k := 70;
+param alpha := 0.5;
+
+for {i in M, j in N: i == j} {
+    let a[i, j] := j * p;
+}
+
+for {i in M, j in N: i < j} {
+    let a[i, j] := j * p - (j - i) * k;
+}
+
+for {i in M, j in N: i > j} {
+    let a[i, j] := j * p - (i - j) * c;
+}
+
+for {j in N} {
+	let max_row_j[j] := max{i in M} a[i,j];
+}
+
+for {i in M, j in N} {
+	let r[i,j] := max_row_j[j] - a[i,j];
+}
+
+let Wald := max{i in M} (min{j in N} a[i,j]);
+let Savage := min{i in M} (max{j in N} r[i,j]);
+let Hurwitz := max{i in M} (alpha * max{j in N} a[i,j] + (1 - alpha) * min {j in N} a[i,j]);
+let Laplace := max{i in M} ((1 / card(N)) * sum{j in N} a[i,j]);

@@ -1,0 +1,16 @@
+model m1.mod;
+option solver cplex;
+solve;
+display result, Table, Closet;
+
+reset;
+model m2.mod;
+option solver cplex;
+solve;
+display result, Table, Closet;
+
+reset;
+model m3.mod;
+option solver cplex;
+solve;
+display result, Table, Closet;
